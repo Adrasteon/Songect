@@ -1,0 +1,10 @@
+torch
+torchaudio
+librosa
+openai-whisper
+transformers
+PySide6
+numpy
+matplotlib
+pyqtgraph
+pyinstaller
