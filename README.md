@@ -1,38 +1,113 @@
-# Songect
+<!-- filepath: c:\Users\marti\MusicTranscribe\Songect\README.md -->
+# Songect Desktop Application
 
-An AI-powered multimodal project focused on music. Get chords, beats, lyrics, melody, and tabs for any song.    
+**Songect is an AI-powered desktop application designed for musicians, producers, and music enthusiasts. It provides comprehensive music analysis features, including chord detection, key estimation, beat and tempo tracking, pitch analysis, music structure segmentation, lyrics transcription with alignment, and source separation. The application aims to generate playable tablature with editing capabilities, all presented in a user-friendly interface built with PySide6 (Qt for Python).**
 
-A transformer-based hybrid multimodal model, various transformer models address different problems in the field of music information retrieval, these models generate corresponding information dependencies that mutually influence each other.
+<!-- Placeholder for a screenshot of the application -->
+<!-- ![Songect Application Screenshot](image/website.png) -->
 
-> The online experience, [See the site here](https://songect.ai)  
+## Core Features
 
-<img src='./image/model.png'  style="width: 950px;" >   
+The Songect desktop application allows users to:
 
-`U-Net` network model for audio source separation, `Pitch-Net`, `Beat-Net`, `Chord-Net` and `Segment-Net` based on the transformer model. Apart from establishing the correlation between the frequency and time, the most important aspect is to establish the mutual influence between different networks.   
+*   **Load Audio Files:** Open various audio formats (e.g., WAV, MP3) for analysis.
+*   **Comprehensive Music Analysis:**
+    *   **Chords & Key:** Detects musical chords (major, minor, 7ths, suspended, etc., including inversions) and determines the overall key of the song.
+    *   **Beats & Tempo:** Identifies beat and downbeat locations and tracks the song's tempo (BPM).
+    *   **Melody Pitch:** Tracks the pitch contour of the main melody, typically from the vocal track.
+    *   **Music Structure:** Segments the song into standard sections like intro, verse, chorus, bridge, etc., with timings.
+    *   **Lyrics Transcription & Alignment:** Transcribes lyrics from the vocal track using AI (`openai-whisper`) providing initial word-level timestamps. (Backend structure for Wav2Vec2 alignment refinement is in place; core alignment algorithms are TODOs).
+    *   **Source Separation:** Separates audio into distinct stems such as vocals, bass, drums, and other instruments (UI placeholders exist).
+*   **Interactive Results Display:** View analysis results in an organized, tabbed interface. Includes time-aligned lyrics highlighting during playback.
+*   **Audio Playback:** Control playback of the loaded audio file.
+*   **Tablature Display (Basic):** A dedicated tab is available to display generated tablature or chord charts (currently shows placeholder data; rendering logic is a TODO).
+*   **Future - AI Tabs:** Generate playable sheet music (chord charts, tablature) based on the analysis, with support for editing chords, rhythm, and lyrics.
+*   **Future - Audio Manipulation:** Includes features like audio speed adjustment and pitch shifting.
 
-The entire AI-powered process is implemented in `aitabs.py`, while the various network structure models can be referenced in the `models` folder.   
-> **Note**: `U-Net` and `Segment-Net` use the stft spectrum of audio as input. `Beat-Net` uses three spectrograms of drums, bass, and other instruments as input,`Chord-Net` uses one spectrogram of the background music.
+## Technology Stack
+
+*   **User Interface:** PySide6 (Qt for Python)
+*   **Backend & AI Core:** Python
+    *   The AI-powered analysis is primarily orchestrated by `python/aitabs.py`.
+    *   **Source Separation:** `U-Net` based model.
+    *   **Music Information Retrieval (MIR):** Transformer-based models for `Pitch-Net`, `Beat-Net`, `Chord-Net`, and `Segment-Net`.
+    *   **Lyrics:** `openai-whisper` for Automatic Speech Recognition (ASR) and initial word timestamps. (Backend structure for fine-tuned `Wav2Vec2` model for alignment refinement is in place; core alignment algorithms are TODOs).
+    *   Model implementations can be found in the `python/models/` directory.
+*   **Packaging:** PyInstaller (for creating distributable application bundles).
+
+> **Note on AI Model Inputs**: `U-Net` (source separation) and `Segment-Net` use the STFT spectrum of the audio. `Beat-Net` uses spectrograms from separated drum, bass, and other instrument stems. `Chord-Net` uses the spectrogram of the background music (accompaniment).
+
+## Getting Started
+
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
+
+### Prerequisites
+
+*   Python (version 3.8+ recommended)
+*   `pip` (Python package installer)
+*   `ffmpeg`: Required by `openai-whisper` for audio processing. Ensure it's installed and accessible in your system's PATH.
+    *   Windows: Download from [ffmpeg.org](https://ffmpeg.org/download.html) and add the `bin` directory (e.g., `C:\path\to\ffmpeg\bin`) to your PATH.
+    *   macOS: `brew install ffmpeg`
+    *   Linux: `sudo apt update && sudo apt install ffmpeg`
+
+### Installation & Running
+
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository_url> # Replace <repository_url> with the actual URL
+    cd Songect
+    ```
+
+2.  **Create and activate a virtual environment (recommended):**
+    ```powershell
+    # For PowerShell on Windows
+    python -m venv .venv
+    .\.venv\Scripts\Activate.ps1
+    ```
+    ```bash
+    # For bash/zsh on macOS/Linux
+    python3 -m venv .venv
+    source .venv/bin/activate
+    ```
+
+3.  **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+4.  **Run the application:**
+    ```bash
+    python main_ui.py
+    ```
+
+## Usage
+
+1.  Launch the application using `python main_ui.py`.
+2.  Use the "Open Audio File..." button or File menu option to load a supported audio file (e.g., WAV, MP3).
+3.  If a WAV file is loaded, transcription and analysis will begin automatically. For other formats, playback will be available, and a message will indicate that transcription requires WAV.
+4.  View analysis results in the corresponding tabs: Summary, Chords & Key, Beats & Tempo, Structure, Melody, Lyrics, Source Separation, and Tablature.
+5.  During audio playback, lyrics in the "Lyrics" tab will highlight in sync with the audio (based on Whisper's word timestamps).
+6.  Use the audio playback controls (Play, Pause, Stop) as needed.
+7.  Access application settings via the "Settings..." button or File menu.
+
+## Project Plan & Future Development
+
+For a detailed breakdown of completed, ongoing, and future development tasks, please refer to the [project_plan.md](project_plan.md) file.
+
+Key upcoming features include:
+*   Full implementation of Wav2Vec2 alignment logic for refined word timestamps.
+*   Integration of plotting libraries for melody and beat visualization.
+*   Development of basic tablature rendering logic.
+*   Implementation of audio speed and pitch adjustment features.
+
+## Contributing
+
+(Details on how to contribute to the project, if applicable - e.g., pull request guidelines, coding standards.)
+
+## License
+
+(Specify the license for the project, e.g., MIT, GPL, etc. If not yet decided, mention "License to be determined.")
 
 
-## Features
-- **Chord**, music chord detection, including major, minor, 7, maj7, min7, 6, m6, sus2, sus4, 5, and inverted chords. Determining the **key** of a song.       
-
-- **Beat**, music beat, downbeat detection and **tempo** (BPM) tracking   
-
-- **Pitch**, tracking the pitch of the melody in the vocal track.  
-
-- **Music Structure**, music segment boundaries and labels, include intro, verse, chorus, bridge and etc.    
-
-- **Lyrics**, music lyrics recognition and automatic lyrics to audio alignment, use ASR (whisper) to recognize the lyrics of the vocal track. The alignment of lyrics and audio is achieved through fine-tuning the wav2vec2 pre-training model. Currently, it supports dozens of languages, including English, Spanish, Portuguese, Russian, Japanese, Korean, Arabic, Chinese, and more.   
-
-- **AI Tabs**, Generate playable sheet music, including chord charts and six-line staves, using chords, beats, music structure information, lyrics, rhythm, etc. It supports editing functionalities for chords, rhythm, and lyrics.   
-
-- **Other**, audio source separation, speed adjustment, pitch shifting, etc.      
-
-For more AI-powered feature experiences, see the [website](https://songect.ai): 
-
-<p align="center">
-  <a href="https://songect.ai/"><img  height=50 src="image/website.png" alt="Songect.ai"></a>
-</p>
 
 
