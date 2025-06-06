@@ -13,4 +13,6 @@ build/
 .coverage
 htmlcov/
 .env
-bin/
+bin/ffmpeg.exe
+bin/ffprobe.exe
+bin/ffplay.exe
