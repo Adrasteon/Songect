@@ -5,7 +5,7 @@
 **Objective:** Create a cross-platform desktop application using PySide (Qt for Python) that leverages the existing Songect Python backend to provide users with music analysis features, tablature generation, and editing capabilities.
 
 **Date:** June 4, 2025
-**Last Updated:** June 5, 2025
+**Last Updated:** June 6, 2025 (Updated for Wav2Vec2 completion and new file handling task)
 
 ---
 
@@ -153,20 +153,20 @@
 
 ---
 
-## Phase 5: Lyrics Module Implementation & UI Integration (3-4 Weeks) - [PARTIALLY COMPLETED]
+## Phase 5: Lyrics Module Implementation & UI Integration (3-4 Weeks) - [COMPLETED - Core Logic Implemented]
 
-1.  **Implement `get_lyrics` in `python/utils.py`:** - [PARTIALLY COMPLETED - Whisper ASR with word timestamps implemented. Wav2Vec2 alignment structure with placeholder helpers added.]
+1.  **Implement `get_lyrics` in `python/utils.py`:** - [COMPLETED]
     *   **Task:** Integrate Whisper for transcription and a Wav2Vec2 model for word-level alignment as discussed previously.
     *   **Code Requirements (Python - in `python/utils.py`):**
         *   Use `openai-whisper` library for transcription. - [COMPLETED]
-        *   Use `transformers` library for Wav2Vec2 alignment model. - [PARTIALLY COMPLETED - Model loading and processing structure in place, core alignment algorithms in helper functions are placeholders.]
-        *   Process alignment output into a usable format (list of words with start/end times, and the `lyrics_matrix` for `PitchNet`). - [PARTIALLY COMPLETED - Whisper provides word timestamps; Wav2Vec2 refinement for more precise timings is pending full implementation of helper functions.]
+        *   Use `transformers` library for Wav2Vec2 alignment model. - [COMPLETED]
+        *   Process alignment output into a usable format (list of words with start/end times, and the `lyrics_matrix` for `PitchNet`). - [COMPLETED - Helper functions `get_trellis`, `backtrack`, `merge_repeats_and_blanks`, `merge_tokens_to_words_from_alignment` implemented and integrated.]
     *   **Dependencies:** `openai-whisper`, `transformers`, `ffmpeg` (system dependency). - [CONFIRMED in `requirements.txt` and `ffmpeg` setup discussed]
-    *   **Actuals:** `python/utils.py` updated. `get_lyrics` now uses `openai-whisper` with `word_timestamps=True` to return a dictionary: `{"text": ..., "detailed_lyrics": [...]}`. The `detailed_lyrics` currently uses Whisper's timestamps. The structure for Wav2Vec2 alignment (including model loading, resampling, and calls to placeholder helper functions for `get_trellis`, `backtrack`, `merge_repeats_and_blanks`, `merge_tokens_to_words_from_alignment`) is in place. **Full implementation of these helper functions is a significant TODO.**
+    *   **Actuals:** `python/utils.py` updated. `get_lyrics` now uses `openai-whisper` with `word_timestamps=True` to get initial transcription and word segments. If enabled, it then uses a Wav2Vec2 model and the implemented helper functions (`get_trellis`, `backtrack`, `merge_repeats_and_blanks`, `merge_tokens_to_words_from_alignment`) to refine these word timestamps. The system falls back to Whisper's timestamps if Wav2Vec2 alignment encounters an error or produces no valid segments. **Next step: Thorough testing of the alignment accuracy.**
 
 2.  **Time-Aligned Lyrics Display:** - [PARTIALLY COMPLETED - UI groundwork laid]
     *   **Task:** Update the Lyrics UI tab to display lyrics synchronized with audio playback, highlighting the current word.
-    *   **Code Requirements (Python - PySide):**
+    *   **Code Requirements (Python - PySide):
         *   Custom widget or enhanced `QTextEdit` that can highlight text based on `QMediaPlayer`'s `positionChanged` signal and the word timings. - [IMPLEMENTED using `QTextEdit` and HTML for highlighting]
     *   **Actuals:** `main_ui.py` updated: `self.current_detailed_lyrics` stores timed lyrics. `QMediaPlayer.positionChanged` connected to `_update_lyrics_highlighting`. This method re-renders lyrics in `lyrics_display_area` using HTML to highlight the current word. Depends on backend providing `detailed_lyrics` in the results (currently from Whisper timestamps).
 
@@ -208,23 +208,34 @@
 
 1.  **Speed and Pitch Adjustment UI:** - [PENDING]
     *   **Task:** Implement UI controls (sliders, input fields) for audio speed and pitch adjustment.
-    *   **Code Requirements (Python - PySide & Backend):
+    *   **Code Requirements (Python - PySide & Backend):**
         *   UI elements.
         *   Backend functions for these adjustments (likely need to be added or exposed from `python/audio.py` or similar).
 
-2.  **Comprehensive Error Handling & User Feedback:** - [PARTIALLY ADDRESSED]
+2.  **Enhanced Input File Handling:** - [PENDING]
+    *   **Task:** Allow the application to accept a wider range of input files.
+        *   Implement logic to detect if an input file is a video file; if so, extract its audio stream (e.g., using `ffmpeg`) and convert it to a temporary WAV file for analysis.
+        *   For non-WAV audio files (e.g., MP3, FLAC), prompt the user to convert them to WAV format for analysis and perform the conversion if agreed (e.g., using `ffmpeg` or `pydub`).
+    *   **Code Requirements (Python - PySide & Backend):**
+        *   Update file dialogs in `main_ui.py` to include video extensions (MP4, MKV, AVI, etc.) and other common audio extensions.
+        *   Backend function(s) in `python/utils.py` or `python/audio.py` to handle audio extraction from video and audio format conversion using `ffmpeg`.
+        *   UI prompts in `main_ui.py` to inform the user and ask for confirmation for conversions.
+        *   Management of temporary WAV files.
+    *   **Actuals:** Concept discussed.
+
+3.  **Comprehensive Error Handling & User Feedback:** - [PARTIALLY ADDRESSED]
     *   **Task:** Implement user-friendly error messages and feedback for all operations.
     *   **Code Requirements (Python - PySide):
         *   Use `QMessageBox` for errors and warnings. - [IMPLEMENTED for some cases]
         *   Update status bar messages. - [IMPLEMENTED for many actions]
     *   **Actuals:** `QMessageBox` used for transcription errors, media player errors, and some warnings. Status bar updated for various states. Further review needed for comprehensiveness.
 
-3.  **UI Styling and Theming (Optional):** - [PENDING]
+4.  **UI Styling and Theming (Optional):** - [PENDING]
     *   **Task:** Apply custom styles or themes using Qt Style Sheets (QSS) or by customizing widget palettes.
     *   **Code Requirements (QSS or Python - PySide):
         *   `.qss` files or programmatic styling.
 
-4.  **Help/About Section:** - [COMPLETED - Basic]
+5.  **Help/About Section:** - [COMPLETED - Basic]
     *   **Task:** Create "Help" and "About" dialogs.
     *   **Code Requirements (Python - PySide):
         *   `QDialog` with static information.

@@ -16,7 +16,7 @@ The Songect desktop application allows users to:
     *   **Beats & Tempo:** Identifies beat and downbeat locations and tracks the song's tempo (BPM).
     *   **Melody Pitch:** Tracks the pitch contour of the main melody, typically from the vocal track.
     *   **Music Structure:** Segments the song into standard sections like intro, verse, chorus, bridge, etc., with timings.
-    *   **Lyrics Transcription & Alignment:** Transcribes lyrics from the vocal track using AI (`openai-whisper`) providing initial word-level timestamps. (Backend structure for Wav2Vec2 alignment refinement is in place; core alignment algorithms are TODOs).
+    *   **Lyrics Transcription & Alignment:** Transcribes lyrics from the vocal track using AI (`openai-whisper`) providing initial word-level timestamps. This is followed by a Wav2Vec2-based alignment process to refine these timestamps for greater accuracy.
     *   **Source Separation:** Separates audio into distinct stems such as vocals, bass, drums, and other instruments (UI placeholders exist).
 *   **Interactive Results Display:** View analysis results in an organized, tabbed interface. Includes time-aligned lyrics highlighting during playback.
 *   **Audio Playback:** Control playback of the loaded audio file.
@@ -31,7 +31,7 @@ The Songect desktop application allows users to:
     *   The AI-powered analysis is primarily orchestrated by `python/aitabs.py`.
     *   **Source Separation:** `U-Net` based model.
     *   **Music Information Retrieval (MIR):** Transformer-based models for `Pitch-Net`, `Beat-Net`, `Chord-Net`, and `Segment-Net`.
-    *   **Lyrics:** `openai-whisper` for Automatic Speech Recognition (ASR) and initial word timestamps. (Backend structure for fine-tuned `Wav2Vec2` model for alignment refinement is in place; core alignment algorithms are TODOs).
+    *   **Lyrics:** `openai-whisper` for Automatic Speech Recognition (ASR) and initial word timestamps, followed by a Wav2Vec2-based alignment for refined word-level timings.
     *   Model implementations can be found in the `python/models/` directory.
 *   **Packaging:** PyInstaller (for creating distributable application bundles).
 
@@ -95,10 +95,11 @@ These instructions will get you a copy of the project up and running on your loc
 For a detailed breakdown of completed, ongoing, and future development tasks, please refer to the [project_plan.md](project_plan.md) file.
 
 Key upcoming features include:
-*   Full implementation of Wav2Vec2 alignment logic for refined word timestamps.
+*   Thorough testing and validation of the implemented Wav2Vec2 alignment logic.
 *   Integration of plotting libraries for melody and beat visualization.
 *   Development of basic tablature rendering logic.
 *   Implementation of audio speed and pitch adjustment features.
+*   Enhanced input file handling: accepting video files (extracting audio) and auto-converting other non-WAV audio to WAV for analysis.
 
 ## Contributing
 
