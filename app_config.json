@@ -1,0 +1,105 @@
+{
+    "model_path": "C:/Users/YourUser/Path/To/Your/Models/Base",
+    "default_device": "cpu",
+    "n_channel": 2,
+    "sources": [
+        "vocals",
+        "bass",
+        "drums",
+        "other"
+    ],
+    "sample_rate": 44100,
+    "separate": {
+        "model_name": "unet",
+        "model_path": "C:/Users/YourUser/Path/To/Your/Models/separation_model.pth",
+        "model": {
+            "in_channels": 2,
+            "out_channels": 8,
+            "depth": 5,
+            "wf": 6,
+            "padding": true,
+            "batch_norm": true,
+            "up_mode": "upsample"
+        },
+        "spec": {
+            "n_fft": 4096,
+            "hop_length": 1024,
+            "n_time": 256
+        }
+    },
+    "lyrics": {
+        "whisper_model": "base",
+        "use_wav2vec2_alignment": true,
+        "wav2vec2_alignment_model": "facebook/wav2vec2-base-960h",
+        "alignment_device": "auto"
+    },
+    "beat": {
+        "model_name": "beat_net",
+        "model_path": "C:/Users/YourUser/Path/To/Your/Models/beat_model.pth",
+        "model": {
+            "source": 3,
+            "n_classes": 3,
+            "weights": [
+                0.4,
+                0.3,
+                0.3
+            ],
+            "n_freq": 2048
+        }
+    },
+    "chord": {
+        "model_name": "chord_net",
+        "model_path": "C:/Users/YourUser/Path/To/Your/Models/chord_model.pth",
+        "model": {
+            "n_freq": 2048,
+            "n_classes": 122,
+            "n_group": 32,
+            "f_layers": 5,
+            "t_layers": 5,
+            "d_model": 512,
+            "n_head": 8,
+            "dim_feedforward": 2048,
+            "dropout": 0.1,
+            "activation": "relu"
+        }
+    },
+    "segment": {
+        "model_name": "segment_net",
+        "model_path": "C:/Users/YourUser/Path/To/Your/Models/segment_model.pth",
+        "model": {
+            "n_channel": 2,
+            "n_hidden": 128,
+            "d_model": 2048,
+            "dropout": 0.1,
+            "n_head": 8,
+            "dim_feedforward": 2048,
+            "num_encoder_layers": 6
+        }
+    },
+    "pitch": {
+        "model_name": "pitch_net",
+        "model_path": "C:/Users/YourUser/Path/To/Your/Models/pitch_model.pth",
+        "model": {
+            "n_channel": 1,
+            "d_model": 512,
+            "n_hidden": 32,
+            "dropout": 0.1,
+            "n_head": 8,
+            "dim_feedforward": 2048,
+            "num_encoder_layers": 6,
+            "num_decoder_layers": 6,
+            "n_freq_out": 360
+        }
+    },
+    "spec": {
+        "n_fft": 4096,
+        "hop_length": 1024,
+        "win_length": 4096,
+        "n_mels": 256,
+        "f_min": 0.0,
+        "f_max": null
+    },
+    "tempo": {
+        "hop_length": 512
+    }
+}

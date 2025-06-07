@@ -1,5 +1,5 @@
 import torch.nn.functional as F
-from common import CHORD_LABELS, SEGMENT_LABELS
+from .common import CHORD_LABELS, SEGMENT_LABELS
 import whisper
 import torch
 import numpy as np
@@ -19,12 +19,14 @@ def build_masked_stft(masks, stft_feature, n_fft=4096):
 
 
 def get_chord_name(chord_idx_list):
-    chords = [CHORD_LABELS[idx] for idx in chord_idx_list]
+    # chord_idx_list is expected to be a 1D NumPy array or similar iterable of indices
+    chords = [CHORD_LABELS[int(idx)] for idx in chord_idx_list] # Cast idx to int
     return chords
 
 
 def get_segment_name(segments):
-    segments = [SEGMENT_LABELS[idx] for idx in segments]
+    # segments is expected to be a 1D NumPy array or similar iterable of indices
+    segments = [SEGMENT_LABELS[int(idx)] for idx in segments] # Cast idx to int
     return segments
 
 
@@ -292,17 +294,17 @@ def merge_tokens_to_words_from_alignment(token_segments, original_transcript_wor
     return word_segments
 
 
-def get_lyrics(waveform, sr, cfg):
+def get_lyrics(waveform_np, sr, cfg):
     """
     Transcribes lyrics and performs word-level alignment.
 
     Args:
-        waveform (torch.Tensor): The audio waveform.
+        waveform_np (np.ndarray): The audio waveform as a NumPy array.
         sr (int): The sample rate of the waveform.
         cfg (dict): Configuration dictionary, potentially containing:
                     'whisper_model': Name of the Whisper model.
                     'wav2vec2_alignment_model': Name of the Wav2Vec2 model for alignment.
-                    'alignment_device': Device for alignment model ('cpu', 'cuda').
+                    'alignment_device': Device for alignment model ('auto', 'cpu', 'cuda').
 
     Returns:
         dict: A dictionary containing:
@@ -314,7 +316,7 @@ def get_lyrics(waveform, sr, cfg):
     transcribed_text = ""
     whisper_word_segments = None
     detailed_lyrics_data = [] # Initialize here
-    waveform_np_float32 = None # Initialize to ensure it's always bound
+    # waveform_np_float32 is now the input waveform_np, processed.
 
     # --- Part 1: ASR with Whisper ---
     try:
@@ -323,19 +325,36 @@ def get_lyrics(waveform, sr, cfg):
         model_whisper = whisper.load_model(model_name_whisper)
         print("Whisper model loaded.")
 
-        if waveform.ndim > 1:
-            if waveform.shape[0] == 2: # Stereo
-                waveform = torch.mean(waveform, dim=0)
-            else: # More than 2 channels
-                waveform = waveform[0, :]
-        
-        waveform_1d = waveform.squeeze()
-        if waveform_1d.ndim == 0:
-            waveform_1d = waveform_1d.unsqueeze(0)
-        waveform_np_float32 = waveform_1d.cpu().numpy().astype(np.float32)
+        # Ensure waveform_np is a NumPy array and process it for Whisper
+        if not isinstance(waveform_np, np.ndarray):
+            # This case should ideally not be hit if called from aitabs.py correctly
+            if isinstance(waveform_np, torch.Tensor):
+                print("Warning: get_lyrics received a Tensor, converting to NumPy array.")
+                waveform_np = waveform_np.cpu().numpy()
+            else:
+                raise TypeError(f"Expected waveform_np to be a NumPy array or PyTorch Tensor, got {type(waveform_np)}")
 
-        print("Starting transcription with Whisper...")
-        whisper_result = model_whisper.transcribe(waveform_np_float32,
+        processed_waveform_np = waveform_np.astype(np.float32) # Ensure float32
+
+        if processed_waveform_np.ndim > 1:
+            if processed_waveform_np.shape[0] == 2: # Stereo (C, T) with C=2
+                print("Converting stereo audio to mono for Whisper by averaging channels.")
+                processed_waveform_np = np.mean(processed_waveform_np, axis=0)
+            elif processed_waveform_np.shape[0] == 1: # Mono but still 2D (1, T)
+                processed_waveform_np = processed_waveform_np.squeeze(0)
+            elif processed_waveform_np.shape[0] > 2: # More than 2 channels
+                print(f"Audio has {processed_waveform_np.shape[0]} channels. Using only the first channel for Whisper.")
+                processed_waveform_np = processed_waveform_np[0, :]
+            # If it was already 1D, it's fine, unless it was (T, C) which is less common for raw audio from librosa/torchaudio load
+        
+        if processed_waveform_np.ndim == 0:
+             raise ValueError("Waveform became a scalar after processing, which is invalid for Whisper.")
+        if processed_waveform_np.ndim > 1: # Should be 1D now
+            print(f"Warning: Waveform for Whisper is not 1D after processing, shape: {processed_waveform_np.shape}. Attempting to flatten.")
+            processed_waveform_np = processed_waveform_np.flatten() # Last resort flatten
+
+        print(f"Starting transcription with Whisper on audio of shape: {processed_waveform_np.shape}...")
+        whisper_result = model_whisper.transcribe(processed_waveform_np, # Use the processed 1D float32 array
                                                   fp16=torch.cuda.is_available(),
                                                   word_timestamps=True) # Get Whisper's word timestamps
         print("Whisper transcription complete.")
@@ -422,12 +441,17 @@ def get_lyrics(waveform, sr, cfg):
     if use_wav2vec2_alignment and transcribed_text.strip():
         print("Attempting Wav2Vec2 alignment refinement...")
         try:
-            # Ensure waveform_np_float32 is available from Whisper processing
-            if waveform_np_float32 is None:
-                raise ValueError("Audio data (waveform_np_float32) is missing for Wav2Vec2 processing.")
+            # Ensure waveform_np (original input to get_lyrics) is available for Wav2Vec2 resampling if needed
+            if waveform_np is None: # Should have been caught by the isinstance check earlier if it was wrong type
+                raise ValueError("Original audio data (waveform_np) is missing for Wav2Vec2 processing.")
 
             alignment_model_name = cfg.get('wav2vec2_alignment_model', 'facebook/wav2vec2-base-960h')
-            alignment_device = cfg.get('alignment_device', 'cuda' if torch.cuda.is_available() else 'cpu')
+            
+            _alignment_device_config = cfg.get('alignment_device', 'auto')
+            if _alignment_device_config == 'auto':
+                alignment_device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            else:
+                alignment_device = _alignment_device_config
             
             print(f"Loading Wav2Vec2 Processor: {alignment_model_name}...")
             processor_val = Wav2Vec2Processor.from_pretrained(alignment_model_name)
@@ -443,7 +467,19 @@ def get_lyrics(waveform, sr, cfg):
                 raise TypeError(f"Wav2Vec2Processor.from_pretrained returned an unexpected type: {type(processor_val)}")
 
             print(f"Loading Wav2Vec2 Model: {alignment_model_name} for CTC...")
-            model = Wav2Vec2ForCTC.from_pretrained(alignment_model_name).to(alignment_device)
+            model_val = Wav2Vec2ForCTC.from_pretrained(alignment_model_name)
+            # Linter fix: Handle if from_pretrained returns a tuple or unexpected type for the model
+            if isinstance(model_val, tuple):
+                if model_val and len(model_val) > 0 and isinstance(model_val[0], Wav2Vec2ForCTC):
+                    model_loaded = model_val[0]
+                else:
+                    raise TypeError(f"Wav2Vec2ForCTC.from_pretrained returned an unexpected tuple: {model_val}")
+            elif isinstance(model_val, Wav2Vec2ForCTC):
+                model_loaded = model_val
+            else:
+                raise TypeError(f"Wav2Vec2ForCTC.from_pretrained returned an unexpected type: {type(model_val)}")
+            
+            model = model_loaded.to(alignment_device)
 
             # Access 'feature_extractor' using getattr to potentially resolve linter issues
             # with the type definition of Wav2Vec2Processor.
@@ -451,11 +487,27 @@ def get_lyrics(waveform, sr, cfg):
             _feature_extractor_object = getattr(processor, "feature_extractor")
             target_sr_wav2vec2 = _feature_extractor_object.sampling_rate
 
-            # waveform_np_float32 is guaranteed not None here due to the check above
-            waveform_np_resampled = waveform_np_float32 
+            # Resampling for Wav2Vec2 should use the original waveform_np before Whisper processing if sr differs.
+            # The `waveform_np_float32` variable was removed as `processed_waveform_np` is used for Whisper.
+            # We need the original `waveform_np` for resampling here.
+            
+            target_sr_wav2vec2 = _feature_extractor_object.sampling_rate
+            
+            # Use the original waveform_np for resampling, ensure it's float32 for librosa
+            resample_input_np = waveform_np.astype(np.float32)
+            # If original waveform_np was stereo, resample the mono version used for Whisper, or resample stereo then mono.
+            # For simplicity, if Whisper used a mono version, resample that if sr differs.
+            # If Whisper received stereo and converted to mono, `processed_waveform_np` holds that mono version.
+            # If Whisper received mono, `processed_waveform_np` is that mono version.
+            # So, `processed_waveform_np` is the correct source for resampling if its SR is `sr`.
+
             if sr != target_sr_wav2vec2:
                 print(f"Resampling audio from {sr}Hz to {target_sr_wav2vec2}Hz for Wav2Vec2...")
-                waveform_np_resampled = librosa.resample(waveform_np_float32, orig_sr=sr, target_sr=target_sr_wav2vec2)
+                # Ensure the input to resample is 1D as librosa.resample expects y to be 1D or 2D (channels, samples)
+                # processed_waveform_np should be 1D at this point.
+                waveform_np_resampled = librosa.resample(processed_waveform_np, orig_sr=sr, target_sr=target_sr_wav2vec2)
+            else:
+                waveform_np_resampled = processed_waveform_np # Already correct sample rate and should be 1D float32
             
             print("Processing audio for Wav2Vec2...")
             # waveform_np_resampled is now guaranteed to be a numpy array if no exception was raised.

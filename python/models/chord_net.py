@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from models.transformers import BaseTransformer
+from .transformers import BaseTransformer
 
 
 class ChordNet(nn.Module):

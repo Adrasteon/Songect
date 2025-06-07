@@ -1,7 +1,7 @@
 from collections import defaultdict
 from itertools import product
 
-from common import MAJOR_CHORDS, MINOR_CHORDS, MAJ2MIN_MAP
+from .common import MAJOR_CHORDS, MINOR_CHORDS, MAJ2MIN_MAP
 
 
 def get_chord_tonic(chord):

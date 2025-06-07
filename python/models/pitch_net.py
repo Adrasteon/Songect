@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from models.transformers import EncoderFre, EncoderTime, FeedForward, positional_encoding
+from .transformers import EncoderFre, EncoderTime, FeedForward, positional_encoding
 
 
 class PitchEmbedding(nn.Module):

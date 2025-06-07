@@ -30,9 +30,104 @@ class ConfigManager:
         
         self.config_file_path = os.path.join(self.config_dir, config_file_name)
         self.default_settings = {
-            "model_path": "",
-            "default_device": "cpu",
-            # Add other default settings here
+            "model_path": "", # Base path for models if not found elsewhere
+            "default_device": "cpu", # Default device for PyTorch operations ('cpu' or 'cuda')
+            
+            # Settings for AITabTranscription based on its __init__
+            "n_channel": 2, # Default number of audio channels (e.g., 2 for stereo)
+            "sources": ["vocals", "bass", "drums", "other"], # Default source separation stems
+            "sample_rate": 44100, # Default sample rate for processing
+            
+            "separate": { # Configuration for source separation model (e.g., UNet wrapper)
+                "model_name": "unet", 
+                "model_path": "C:/Users/YourUser/Path/To/Your/Models/separation_model.pth", # Placeholder
+                "model": { # Parameters for the UNets constructor (which then passes to UNet instances)
+                    # 'sources' and 'n_channel' will be added dynamically in aitabs.py
+                    "conv_n_filters": [16, 32, 64, 128, 256, 512], # Example filter configuration for UNet
+                    "down_activation": "ELU",
+                    "up_activation": "ELU",
+                    "down_dropouts": None, # Or a list of dropout rates, e.g., [0.0, 0.0, ...]
+                    "up_dropouts": None    # Or a list of dropout rates
+                },
+                "spec": { # Spectrogram settings specific to separation if different from global
+                    "n_fft": 4096,
+                    "hop_length": 1024,
+                    "n_time": 256 # Example, might be specific to model input
+                }
+            },
+            "lyrics": { # Configuration for lyrics transcription and alignment
+                "model_name": "lyric_net", # Example
+                "model_path": "path/to/your/lyric_model.pth", # Placeholder
+                # Add other lyrics-specific params if needed
+            },
+            "beat": { # Configuration for beat and tempo detection
+                "model_name": "beat_net", 
+                "model_path": "path/to/your/beat_model.pth", # Placeholder
+                "model": { # Parameters for BeatNet constructor
+                    "source": 3, 
+                    "n_classes": 3, 
+                    "weights": [0.4, 0.3, 0.3], 
+                    "n_freq": 2048
+                }
+            },
+            "chord": { # Configuration for chord detection
+                "model_name": "chord_net", 
+                "model_path": "path/to/your/chord_model.pth", # Placeholder
+                "model": { # Parameters for ChordNet constructor
+                    "n_freq": 2048,
+                    "n_classes": 122, # Example number of chord classes
+                    "n_group": 32,
+                    "f_layers": 5,
+                    "t_layers": 5,
+                    "d_model": 512,
+                    "n_head": 8,
+                    "dim_feedforward": 2048,
+                    "dropout": 0.1,
+                    "activation": "relu"
+                }
+            },
+            "segment": { # Configuration for structure segmentation
+                "model_name": "segment_net", 
+                "model_path": "path/to/your/segment_model.pth", # Placeholder
+                "model": { # Parameters for SegmentNet (likely embedding + transformer)
+                    "n_channel": 2, # For SegmentEmbeddings
+                    "n_hidden": 128, # For SegmentEmbeddings
+                    "d_model": 2048, # For SegmentEmbeddings & Transformer
+                    "dropout": 0.1, # For SegmentEmbeddings & Transformer
+                    "n_head": 8, # For Transformer
+                    "dim_feedforward": 2048, # For Transformer
+                    "num_encoder_layers": 6 # For Transformer
+                }
+            },
+            "pitch": { # Configuration for pitch (melody) detection
+                "model_name": "pitch_net", 
+                "model_path": "C:/Users/YourUser/Path/To/Your/Models/pitch_model.pth", # Placeholder
+                "model": { # Parameters for PitchNet (likely embedding + transformer)
+                    "n_channel": 1, # For PitchEmbedding (usually mono vocal)
+                    "d_model": 512, # For PitchEmbedding & Transformer
+                    "n_hidden": 32, # For PitchEmbedding
+                    "dropout": 0.1, # For PitchEmbedding & Transformer
+                    "n_head": 8, # For Transformer
+                    "dim_feedforward": 2048, # For Transformer
+                    "num_encoder_layers": 6, # For Transformer
+                    "num_decoder_layers": 6, # For Transformer (if applicable)
+                    "n_freq_out": 360 # Example output dimension for pitch bins
+                }
+            },
+            "spec": { # Global/default spectrogram settings
+                "n_fft": 4096,             # Standard FFT size
+                "hop_length": 1024,        # Standard hop length for STFT
+                "win_length": 4096,        # Window length for STFT
+                "pad": True,               # Added: Default padding for STFT (True for center=True)
+                "n_mels": 256,             # Number of Mel bands, if Mel spectrograms are used
+                "f_min": 0.0,              # Minimum frequency for Mel filters
+                "f_max": None             # Maximum frequency for Mel filters (None uses sr/2)
+            },
+            "tempo": { # Configuration for tempo detection (e.g., using librosa.beat.beat_track)
+                "hop_length": 512,         # Hop length for librosa's beat tracker
+                # Add other tempo-specific params if needed
+            }
+            # Add other default settings here as needed by other parts of AITabTranscription or your app
         }
 
     def load_settings(self):
@@ -131,7 +226,8 @@ if __name__ == '__main__':
             os.remove(config_manager.config_file_path)
             print(f"Cleaned up test config file: {config_manager.config_file_path}")
         # Attempt to remove the directory if it was created for the test config and is empty
-        if config_manager.config_file_name == 'test_app_config.json': # only if it's the test one
+        # Check against the actual config_file_path being managed by this instance
+        if config_manager.config_file_path.endswith('test_app_config.json'): # only if it's the test one
             if os.path.exists(config_manager.config_dir) and not os.listdir(config_manager.config_dir):
                 os.rmdir(config_manager.config_dir)
                 print(f"Cleaned up test config directory: {config_manager.config_dir}")

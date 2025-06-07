@@ -23,7 +23,15 @@ class BackendHandler:
             # Example: self.transcriber = AITabTranscription(config=self.config)
             # For now, let's assume AITabTranscription can be instantiated without a config
             # or with a default one if config is None.
-            self.transcriber = AITabTranscription() # Adjust as per AITabTranscription's needs
+            # Pass the stored config to AITabTranscription
+            if self.config is None:
+                # This case should ideally be handled by ensuring ConfigManager always returns a valid default config,
+                # or AITabTranscription should have its own internal defaults if config is None.
+                # For now, raising an error or logging a warning might be appropriate if config is essential.
+                print("Warning: BackendHandler has no config; AITabTranscription might not initialize correctly.")
+                # Depending on AITabTranscription's design, it might raise an error here or use defaults.
+                # If AITabTranscription strictly requires a config, this will fail, which is what we're seeing.
+            self.transcriber = AITabTranscription(config=self.config)
             print("AITabTranscription initialized successfully.")
         except Exception as e:
             print(f"Error initializing AITabTranscription: {e}")
@@ -47,12 +55,18 @@ class BackendHandler:
             return None
 
         try:
-            print(f"Starting transcription for {wav_fp} on device: {device if device else 'default'}")
-            # Placeholder: Actual call to the transcribe method of AITabTranscription
-            # results = self.transcriber.transcribe(wav_fp, device=device)
-            # For now, returning a placeholder message
-            results = f"Transcription results for {wav_fp}"
-            print("Transcription process completed (placeholder).")
+            # Determine the device to use for transcription
+            effective_device = device
+            if effective_device is None:
+                if self.config and 'default_device' in self.config:
+                    effective_device = self.config['default_device']
+                else:
+                    effective_device = 'cpu' # Fallback if not in config
+            
+            print(f"Starting transcription for {wav_fp} on device: {effective_device}")
+            # Actual call to the transcribe method of AITabTranscription
+            results = self.transcriber.transcribe(wav_fp, device=effective_device)
+            print(f"Transcription process completed for {wav_fp}.")
             return results
         except Exception as e:
             print(f"Error during transcription: {e}")
